@@ -25,22 +25,40 @@ const QUERY_HEADERS = {
   'Access-Token': ACCESS_TOKEN,
 }
 
-function toDateStr(date: Date) {
-  return date.toISOString().slice(0, 10).replace(/-/g, '')
+function toDateInput(date: Date) {
+  return date.toISOString().slice(0, 10)
 }
 
 function plusDays(days: number) {
   const d = new Date()
   d.setDate(d.getDate() + days)
-  return toDateStr(d)
+  return toDateInput(d)
+}
+
+function toAPIDate(dateInput: string) {
+  return dateInput.replace(/-/g, '')
 }
 
 type Mode = 'data' | 'nodata'
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+  return (
+    <button onClick={copy} className={`btn-copy ${copied ? 'copied' : ''}`}>
+      {copied ? '✓ 已複製' : '複製'}
+    </button>
+  )
+}
+
 function Issuer() {
   const [mode, setMode] = useState<Mode>('data')
   const [idNumber, setIdNumber] = useState('A123456789')
-  const [issuanceDate, setIssuanceDate] = useState(toDateStr(new Date()))
+  const [issuanceDate, setIssuanceDate] = useState(toDateInput(new Date()))
   const [expiredDate, setExpiredDate] = useState(plusDays(7))
 
   const [loading, setLoading] = useState(false)
@@ -84,8 +102,8 @@ function Issuer() {
         mode === 'data'
           ? {
               vcUid: VC_UID,
-              issuanceDate,
-              expiredDate,
+              issuanceDate: toAPIDate(issuanceDate),
+              expiredDate: toAPIDate(expiredDate),
               fields: [{ ename: 'id_number', content: idNumber }],
             }
           : { vcUid: VC_UID }
@@ -139,7 +157,7 @@ function Issuer() {
           {mode === 'data' ? (
             <>
               <label className="field">
-                <span>身分證字號 (id_number)</span>
+                <span>身分證字號 (ID Number)</span>
                 <input
                   value={idNumber}
                   onChange={(e) => setIdNumber(e.target.value)}
@@ -147,56 +165,65 @@ function Issuer() {
                 />
               </label>
               <label className="field">
-                <span>發行日期 (issuanceDate, YYYYMMDD)</span>
+                <span>發行日期 (Issuance Date)</span>
                 <input
+                  type="date"
                   value={issuanceDate}
                   onChange={(e) => setIssuanceDate(e.target.value)}
-                  placeholder="20260512"
                 />
               </label>
               <label className="field">
-                <span>到期日期 (expiredDate, YYYYMMDD)</span>
+                <span>到期日期 (Expiry Date)</span>
                 <input
+                  type="date"
                   value={expiredDate}
                   onChange={(e) => setExpiredDate(e.target.value)}
-                  placeholder="20260519"
                 />
               </label>
             </>
           ) : (
-            <p className="hint" style={{ textAlign: 'center' }}>
+            <p className="hint">
               無資料模式：用戶掃描後自行填入身分資料
+              <br />
+              <span style={{ fontSize: '0.8rem' }}>No-data mode: user fills in identity info after scanning</span>
             </p>
           )}
 
           <button onClick={issue} disabled={loading} className="btn-primary">
-            {loading ? '發行中…' : '發行憑證'}
+            {loading ? '發行中…' : '發行憑證 (Issue Credential)'}
           </button>
         </div>
       )}
 
-      {error && <p className="error">錯誤: {error}</p>}
+      {error && <p className="error">錯誤 (Error): {error}</p>}
 
       {qr && !credStatus && (
         <div className="qr-block">
           <p className="hint">請用數位憑證皮夾 App 掃描 QR Code</p>
           <img src={qr.qrCode} alt="Credential Offer QR Code" className="qr-img" />
-          <p className="txid">Transaction ID: {qr.transactionId}</p>
+          <div className="txid-row">
+            <p className="txid">TX: {qr.transactionId}</p>
+            <CopyButton text={qr.transactionId} />
+          </div>
           {qr.deepLink && (
-            <a href={qr.deepLink} className="deep-link">
-              {qr.deepLink}
-            </a>
+            <div className="deep-link-row">
+              <a href={qr.deepLink} className="deep-link">{qr.deepLink}</a>
+              <CopyButton text={qr.deepLink} />
+            </div>
           )}
-          <p className="hint">等待用戶掃描領取憑證…</p>
-          <button onClick={reset} className="btn-secondary">重新發行</button>
+          <div className="polling-indicator">
+            <span className="pulse-dot" />
+            等待用戶掃描領取憑證 (Waiting for scan…)
+          </div>
+          <button onClick={reset} className="btn-secondary">重新發行 (Reset)</button>
         </div>
       )}
 
       {credStatus && (
         <div className="result-box success">
-          <h3>✓ 憑證已領取</h3>
+          <h3>✓ 憑證已領取 (Credential Issued)</h3>
           <pre>{JSON.stringify(credStatus, null, 2)}</pre>
-          <button onClick={reset} className="btn-secondary">再次發行</button>
+          <button onClick={reset} className="btn-secondary">再次發行 (Issue Again)</button>
         </div>
       )}
     </div>

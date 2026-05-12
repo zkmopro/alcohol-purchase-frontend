@@ -18,6 +18,20 @@ const HEADERS = {
 
 const POLL_MS = 3000
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+  return (
+    <button onClick={copy} className={`btn-copy ${copied ? 'copied' : ''}`}>
+      {copied ? '✓ Copied' : 'Copy'}
+    </button>
+  )
+}
+
 function Verifier() {
   const [qr, setQr] = useState<QRCodeResponse | null>(null)
   const [result, setResult] = useState<VerifyResult | null>(null)
@@ -71,29 +85,40 @@ function Verifier() {
 
   return (
     <div className="page-content">
-      <h2>Taiwan Driver License Verifier</h2>
+      <h2>驗證駕照憑證 (Driver License Verification)</h2>
 
-      {loading && <p className="hint">Loading QR code…</p>}
-      {error && <p className="error">Error: {error}</p>}
+      {loading && (
+        <div className="polling-indicator">
+          <span className="pulse-dot" />
+          載入 QR Code 中… (Loading QR code…)
+        </div>
+      )}
+      {error && <p className="error">錯誤 (Error): {error}</p>}
 
       {qr && !result && (
         <div className="qr-block">
-          <p className="hint">Scan the QR code with your wallet app</p>
+          <p className="hint">請用數位憑證皮夾 App 掃描 QR Code<br /><span style={{ fontSize: '0.8rem' }}>Scan with your wallet app to verify</span></p>
           <img src={qr.qrcodeImage} alt="Verification QR Code" className="qr-img" />
-          <p className="txid">Transaction ID: {qr.transactionId}</p>
-          <p className="hint">Waiting for verification…</p>
+          <div className="txid-row">
+            <p className="txid">TX: {qr.transactionId}</p>
+            <CopyButton text={qr.transactionId} />
+          </div>
+          <div className="polling-indicator">
+            <span className="pulse-dot" />
+            等待驗證結果 (Waiting for verification…)
+          </div>
         </div>
       )}
 
       {result && (
         <div className="result-box success">
-          <h3>✓ Verified</h3>
+          <h3>✓ 驗證成功 (Verified)</h3>
           <pre>{JSON.stringify(result, null, 2)}</pre>
         </div>
       )}
 
       <button onClick={fetchQRCode} disabled={loading} className="btn-primary">
-        {loading ? 'Loading…' : 'New Verification'}
+        {loading ? '載入中… (Loading…)' : '新增驗證 (New Verification)'}
       </button>
     </div>
   )
