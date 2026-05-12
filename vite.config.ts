@@ -1,11 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/issuer-api': {
+        target: 'https://issuer-sandbox.wallet.gov.tw',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/issuer-api/, ''),
+        secure: true,
+      },
       '/api': {
         target: 'https://verifier-sandbox.wallet.gov.tw',
         changeOrigin: true,
